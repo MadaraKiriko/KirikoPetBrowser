@@ -587,7 +587,10 @@
                     throw new Error(`响应中无音频 URL: ${JSON.stringify(data)}`);
                 }
                 console.log('🔗 音频 URL:', audioUrl);
-                const audioRes = await fetch(audioUrl);
+                // 强制使用 HTTPS（修复混合内容问题）
+                const secureUrl = audioUrl.replace(/^http:/, 'https:');
+                console.log('🔗 使用安全 URL:', secureUrl);
+                const audioRes = await fetch(secureUrl);
                 if (!audioRes.ok) {
                     throw new Error(`下载音频失败: ${audioRes.status}`);
                 }
