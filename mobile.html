@@ -202,6 +202,103 @@
             100% { transform: scale(1); }
         }
         /* 其他样式不变 */
+        #chat-send {
+            background: rgba(70, 130, 255, 0.8);
+            border: none;
+            border-radius: 14px;
+            padding: 0 22px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        #chat-send:active {
+            transform: scale(0.95);
+        }
+
+        #chat-send:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* 历史面板（移动端底部弹出） */
+        #history-panel {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 60vh;
+            background: rgba(30, 30, 40, 0.98);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 16px 20px 30px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        #history-panel .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #history-panel .history-header button {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        #history-panel .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            font-size: 15px;
+            color: #ddd;
+        }
+
+        #history-panel .history-item:active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #history-empty {
+            color: #888;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        /* 启动过渡（可选） */
+        #splash-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1c1c24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: #88ccff;
+            font-size: 20px;
+            font-weight: 300;
+            transition: opacity 0.5s ease;
+        }
+
+        #splash-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 
