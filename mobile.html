@@ -178,7 +178,27 @@
         #chat-input::placeholder {
             color: #aaa;
         }
-
+        #mic-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            border-radius: 14px;
+            padding: 0 16px;
+            color: #ccc;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        #mic-btn.listening {
+            background: rgba(255, 80, 80, 0.6);
+            color: #fff;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
         #chat-send {
             background: rgba(70, 130, 255, 0.8);
             border: none;
@@ -298,6 +318,7 @@
         <div id="chat-messages"></div>
         <div id="chat-input-area">
             <textarea id="chat-input" rows="1" placeholder="输入消息... (Enter发送)"></textarea>
+            <button id="mic-btn" title="语音输入">🎤</button>
             <button id="chat-send">发送</button>
         </div>
     </div>
@@ -722,6 +743,88 @@
         // ============================================================
         // 11. 事件绑定
         // ============================================================
+        // ============================================================
+// 语音输入（Web Speech API）
+// ============================================================
+const micBtn = document.getElementById('mic-btn');
+let recognition = null;
+let isListening = false;
+
+// 检查浏览器是否支持语音识别
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';          // 中文
+    recognition.continuous = false;      // 单次识别
+    recognition.interimResults = true;   // 实时显示中间结果
+    recognition.maxAlternatives = 1;
+
+    // 识别结果回调
+    recognition.onresult = (event) => {
+        let finalText = '';
+        let interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalText += transcript;
+            } else {
+                interimText += transcript;
+            }
+        }
+        // 如果有最终结果，填入输入框并发送
+        if (finalText) {
+            chatInput.value = finalText;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+            // 自动发送消息
+            sendMessage();
+        } else if (interimText) {
+            // 实时显示中间结果（可选）
+            chatInput.value = interimText;
+            chatInput.style.height = 'auto';
+        }
+    };
+
+    recognition.onend = () => {
+        isListening = false;
+        micBtn.classList.remove('listening');
+        micBtn.textContent = '🎤';
+        console.log('🎤 语音识别结束');
+    };
+
+    recognition.onerror = (event) => {
+        console.error('🎤 语音识别错误:', event.error);
+        isListening = false;
+        micBtn.classList.remove('listening');
+        micBtn.textContent = '🎤';
+        // 如果是 "not-allowed" 错误，提示用户授权麦克风
+        if (event.error === 'not-allowed') {
+            alert('请允许浏览器访问麦克风权限');
+        }
+    };
+
+    // 点击麦克风按钮：开始/停止识别
+    micBtn.addEventListener('click', () => {
+        if (isListening) {
+            recognition.stop();
+            return;
+        }
+        try {
+            recognition.start();
+            isListening = true;
+            micBtn.classList.add('listening');
+            micBtn.textContent = '⏹️';
+            chatInput.placeholder = '🎤 正在听...';
+            console.log('🎤 开始语音识别');
+        } catch (e) {
+            console.warn('启动语音识别失败:', e);
+        }
+    });
+} else {
+    // 浏览器不支持语音识别
+    micBtn.style.display = 'none';
+    console.warn('⚠️ 当前浏览器不支持语音识别');
+}
         sendBtn.addEventListener('click', sendMessage);
 
         chatInput.addEventListener('keydown', (e) => {
