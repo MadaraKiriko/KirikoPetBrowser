@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雾子桌宠 - 手机版</title>
+    <style>
+        /* ===== 全局样式 ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif;
+            background: #1c1c24;
+            color: #eee;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===== 聊天对话框（全屏） ===== */
+        #chat-dialog {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(14px);
+            color: #eee;
+            font-size: 18px;
+            overflow: hidden;
+        }
+
+        #chat-header {
+            padding: 14px 20px;
+            background: rgba(20, 20, 30, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        #chat-header span {
+            font-weight: 600;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        #chat-status {
+            font-size: 16px;
+            color: #88ccff;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-right: 12px;
+        }
+
+        #chat-status.show {
+            opacity: 1;
+        }
+
+        #chat-header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        #chat-header-actions button {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #ccc;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #chat-header-actions button:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 20px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        #chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+        }
+
+        .chat-message {
+            padding: 10px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.6;
+            animation: fadeIn 0.2s ease;
+            font-size: 17px;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: rgba(70, 130, 255, 0.7);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.assistant {
+            align-self: flex-start;
+            background: rgba(60, 60, 70, 0.7);
+            color: #f0f0f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #chat-input-area {
+            display: flex;
+            gap: 10px;
+            padding: 12px 18px 16px;
+            background: rgba(20, 20, 30, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #eee;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            transition: 0.2s;
+            font-family: inherit;
+            line-height: 1.5;
+            min-height: 48px;
+            -webkit-appearance: none;
+        }
+
+        #chat-input:focus {
+            border-color: rgba(70, 130, 255, 0.6);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        #chat-input::placeholder {
+            color: #aaa;
+        }
+
+        #chat-send {
+            background: rgba(70, 130, 255, 0.8);
+            border: none;
+            border-radius: 14px;
+            padding: 0 22px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        #chat-send:active {
+            transform: scale(0.95);
+        }
+
+        #chat-send:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* 历史面板（移动端底部弹出） */
+        #history-panel {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 60vh;
+            background: rgba(30, 30, 40, 0.98);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 16px 20px 30px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        #history-panel .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #history-panel .history-header button {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        #history-panel .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            font-size: 15px;
+            color: #ddd;
+        }
+
+        #history-panel .history-item:active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #history-empty {
+            color: #888;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        /* 启动过渡（可选） */
+        #splash-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1c1c24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: #88ccff;
+            font-size: 20px;
+            font-weight: 300;
+            transition: opacity 0.5s ease;
+        }
+
+        #splash-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 启动加载画面 -->
+    <div id="splash-container">
+        <span>🌫️ 雾子加载中...</span>
+    </div>
+
+    <!-- 聊天界面 -->
+    <div id="chat-dialog">
+        <div id="chat-header">
+            <span>💬 雾子 · 手机版</span>
+            <div id="chat-status">雾子正在思考…</div>
+            <div id="chat-header-actions">
+                <button id="history-btn">📋</button>
+                <button id="new-chat-btn">✨</button>
+            </div>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <textarea id="chat-input" rows="1" placeholder="输入消息... (Enter发送)"></textarea>
+            <button id="chat-send">发送</button>
+        </div>
+    </div>
+
+    <!-- 历史面板 -->
+    <div id="history-panel">
+        <div class="history-header">
+            <span>📜 历史对话</span>
+            <button id="close-history">✕</button>
+        </div>
+        <div id="history-list"></div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. 配置区（请根据你的阿里云信息修改）
+        // ============================================================
+        const ALIYUN_API_KEY = 'sk-ws-H.EHLHPML.hT9r.MEUCIQCanixQXRNih_3pdusCgV-d6x0OCUZDtQi5JMyZFZrn5wIgdMqnsqUTcmmNHY5RSzu3zeMmwNqtkFZDCXr57_sfcyE';
+        const ALIYUN_WORKSPACE_ID = 'ws-v0dpmptqqsz9mra4';
+        const ALIYUN_VOICE_ID = 'cosyvoice-v3.5-plus-bailian-a81fe3c48693489b80342207b777002e';
+        const ALIYUN_MODEL = 'cosyvoice-v3.5-plus';
+        const ALIYUN_REGION = 'cn-beijing';
+        const LLM_MODEL = 'qwen3.7-max';
+
+        // ============================================================
+        // 2. 硬编码的语句配置（原 messages.json 内容）
+        // ============================================================
+        const MESSAGES = [
+            { text: "你好呀！今天心情怎么样？", emotion: "normal.png" },
+            { text: "嘿，戳我干嘛？", emotion: "normal.png" },
+            { text: "嗯？有事吗？", emotion: "puzzled.png" }
+        ];
+
+        // ============================================================
+        // 3. 状态变量
+        // ============================================================
+        let isSpeaking = false; // 语音播放锁
+        let isGenerating = false; // 语音生成锁
+        let isProcessing = false; // 消息处理锁
+        let currentMessages = []; // 当前对话消息列表
+        let currentChatId = null; // 当前对话ID（用于存储）
+
+        // DOM 引用
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send');
+        const statusEl = document.getElementById('chat-status');
+        const historyBtn = document.getElementById('history-btn');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const historyPanel = document.getElementById('history-panel');
+        const historyList = document.getElementById('history-list');
+        const closeHistoryBtn = document.getElementById('close-history');
+        const splash = document.getElementById('splash-container');
+
+        // ============================================================
+        // 4. 工具函数
+        // ============================================================
+        function getBaseName(filename) {
+            return filename.replace(/\.[^.]+$/, '');
+        }
+
+        // 清理文本用于 TTS（去除英文字母，保留中文和数字）
+        function cleanTextForTTS(text) {
+            let cleaned = text.replace(/[a-zA-Z]/g, '');
+            cleaned = cleaned.replace(/[^0-9\u4e00-\u9fa5，。！？；：、“”‘’（）【】……—\s]/g, '');
+            cleaned = cleaned.replace(/\s+/g, ' ').trim();
+            if (!cleaned) cleaned = '内容包含无法朗读的字符。';
+            return cleaned;
+        }
+
+        // ============================================================
+        // 5. 存储操作（localStorage）
+        // ============================================================
+        const STORAGE_KEY = 'chat_history';
+
+        function loadHistoryFromStorage() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const history = JSON.parse(data);
+                    if (Array.isArray(history) && history.length > 0) {
+                        // 按时间戳降序，取最新
+                        history.sort((a, b) => b.timestamp - a.timestamp);
+                        const latest = history[0];
+                        currentChatId = latest.id;
+                        currentMessages = latest.messages || [];
+                        renderMessages();
+                        console.log(`✅ 加载历史对话: ${currentMessages.length} 条消息`);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('读取历史失败', e);
+            }
+            // 没有历史，开始新对话
+            startNewChat();
+        }
+
+        function saveHistoryToStorage() {
+            if (currentMessages.length === 0) {
+                console.log('⏭️ 当前对话为空，跳过保存');
+                return;
+            }
+            if (!currentChatId) {
+                currentChatId = new Date().toISOString();
+            }
+            let history = [];
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    if (Array.isArray(parsed)) history = parsed;
+                }
+            } catch (e) { }
+            // 移除旧的相同 ID
+            const idx = history.findIndex(item => item.id === currentChatId);
+            if (idx !== -1) history.splice(idx, 1);
+            history.push({
+                id: currentChatId,
+                timestamp: Date.now(),
+                messages: currentMessages
+            });
+            // 最多保留100条
+            if (history.length > 100) {
+                history.sort((a, b) => b.timestamp - a.timestamp);
+                history.length = 100;
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        }
+
+        // ============================================================
+        // 6. 聊天 UI 操作
+        // ============================================================
+        function renderMessages() {
+            chatMessages.innerHTML = '';
+            for (const msg of currentMessages) {
+                addMessageToChat(msg.role, msg.content, false);
+            }
+        }
+
+        function addMessageToChat(role, content, save = true) {
+            const div = document.createElement('div');
+            div.className = `chat-message ${role}`;
+            div.textContent = content;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (save) {
+                currentMessages.push({ role, content });
+            }
+        }
+
+        function appendToLastAIMessage(content) {
+            const last = chatMessages.lastElementChild;
+            if (last && last.classList.contains('assistant')) {
+                last.textContent += content;
+            } else {
+                const div = document.createElement('div');
+                div.className = 'chat-message assistant';
+                div.textContent = content;
+                chatMessages.appendChild(div);
+                currentMessages.push({ role: 'assistant', content: '' });
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            const lastMsg = currentMessages[currentMessages.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant') {
+                lastMsg.content += content;
+            }
+        }
+
+        function startNewChat() {
+            if (currentMessages.length > 0) {
+                saveHistoryToStorage();
+            }
+            currentChatId = new Date().toISOString();
+            currentMessages = [];
+            chatMessages.innerHTML = '';
+            // 不添加欢迎语
+        }
+
+        // ============================================================
+        // 7. LLM 调用
+        // ============================================================
+        async function chatWithAI(history, onChunk, onComplete) {
+            try {
+                const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ALIYUN_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: LLM_MODEL,
+                        messages: [
+                            { role: 'system', content: '你是一个可爱的桌宠，你叫雾子，请用简短、友好的方式回答用户。尽量使用纯中文，避免英文词汇。' },
+                            ...history
+                        ],
+                        stream: true,
+                        stream_options: { include_usage: true },
+                        enable_search: true
+                    })
+                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+                    for (const line of lines) {
+                        const data = line.replace('data: ', '');
+                        if (data === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices?.[0]?.delta?.content;
+                            if (content) {
+                                fullContent += content;
+                                onChunk(content);
+                            }
+                        } catch (e) { }
+                    }
+                }
+                onComplete(fullContent);
+            } catch (error) {
+                console.error('LLM API 错误:', error);
+                onComplete('抱歉，我暂时无法回答。');
+            }
+        }
+
+        // ============================================================
+        // 8. TTS（阿里云语音合成）
+        // ============================================================
+        async function generateSpeechWithAliyun(text) {
+            const cleaned = cleanTextForTTS(text);
+            if (cleaned === '内容包含无法朗读的字符。') {
+                console.warn('TTS 文本为空或无法朗读');
+                return;
+            }
+            if (isSpeaking) {
+                console.warn('⏳ 正在播放语音，请稍后');
+                throw new Error('正在播放语音');
+            }
+            if (isGenerating) {
+                console.warn('⏳ 正在生成语音，请稍后');
+                throw new Error('正在生成语音');
+            }
+            isSpeaking = true;
+            isGenerating = true;
+            try {
+                const url = `https://${ALIYUN_WORKSPACE_ID}.${ALIYUN_REGION}.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer`;
+                console.log('🔊 请求阿里云 TTS (清洗后):', cleaned.substring(0, 30) + '...');
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ALIYUN_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: ALIYUN_MODEL,
+                        input: {
+                            text: cleaned,
+                            voice: ALIYUN_VOICE_ID,
+                            format: 'wav',
+                            sample_rate: 24000
+                        }
+                    })
+                });
+                if (!response.ok) {
+                    let errMsg = `HTTP ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        errMsg = JSON.stringify(errData);
+                    } catch (e) {
+                        errMsg = await response.text() || errMsg;
+                    }
+                    throw new Error(`阿里云 TTS API 错误: ${errMsg}`);
+                }
+                const data = await response.json();
+                let audioUrl = data.output?.audio?.url;
+                if (!audioUrl) audioUrl = data.output?.audio_url;
+                if (!audioUrl) audioUrl = data.audio_url;
+                if (!audioUrl) {
+                    throw new Error(`响应中无音频 URL: ${JSON.stringify(data)}`);
+                }
+                console.log('🔗 音频 URL:', audioUrl);
+                const audioRes = await fetch(audioUrl);
+                if (!audioRes.ok) {
+                    throw new Error(`下载音频失败: ${audioRes.status}`);
+                }
+                const audioBlob = await audioRes.blob();
+                console.log(`✅ 音频数据接收成功，大小: ${audioBlob.size} bytes`);
+
+                const blobUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(blobUrl);
+                audio.volume = 1.0;
+                await new Promise((resolve, reject) => {
+                    const cleanup = (err) => {
+                        URL.revokeObjectURL(blobUrl);
+                        if (err) reject(err);
+                        else resolve();
+                    };
+                    audio.onended = () => cleanup();
+                    audio.onerror = (e) => cleanup(new Error('播放错误'));
+                    audio.play().catch(e => cleanup(e));
+                });
+                console.log('✅ 音频播放结束');
+            } catch (error) {
+                console.error('❌ 阿里云 TTS 请求/播放失败:', error);
+                throw error;
+            } finally {
+                isSpeaking = false;
+                isGenerating = false;
+            }
+        }
+
+        // ============================================================
+        // 9. 发送消息
+        // ============================================================
+        function sendMessage() {
+            if (isProcessing || isSpeaking) {
+                console.log('⏳ 正在处理中，请稍后...');
+                return;
+            }
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // 显示思考状态
+            statusEl.classList.add('show');
+
+            isProcessing = true;
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+
+            addMessageToChat('user', message);
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            chatWithAI(currentMessages,
+                (chunk) => {
+                    // 收到第一个数据块时隐藏状态
+                    if (statusEl.classList.contains('show')) {
+                        statusEl.classList.remove('show');
+                    }
+                    appendToLastAIMessage(chunk);
+                },
+                (fullReply) => {
+                    statusEl.classList.remove('show');
+                    isProcessing = false;
+                    chatInput.disabled = false;
+                    sendBtn.disabled = false;
+                    chatInput.focus();
+
+                    if (fullReply && fullReply.trim()) {
+                        generateSpeechWithAliyun(fullReply).catch(e => console.warn('TTS失败:', e));
+                    }
+                }
+            );
+        }
+
+        // ============================================================
+        // 10. 历史记录相关
+        // ============================================================
+        function showHistory() {
+            historyList.innerHTML = '';
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const history = JSON.parse(data);
+                    if (Array.isArray(history) && history.length > 0) {
+                        history.sort((a, b) => b.timestamp - a.timestamp);
+                        for (const item of history) {
+                            const div = document.createElement('div');
+                            div.className = 'history-item';
+                            const date = new Date(item.timestamp).toLocaleString();
+                            const preview = item.messages.length > 0 ? item.messages[0].content.substring(0, 20) : '空对话';
+                            div.textContent = `${date} - ${preview}...`;
+                            div.addEventListener('click', () => loadConversation(item.id));
+                            historyList.appendChild(div);
+                        }
+                    } else {
+                        historyList.innerHTML = '<div id="history-empty">暂无历史记录</div>';
+                    }
+                } else {
+                    historyList.innerHTML = '<div id="history-empty">暂无历史记录</div>';
+                }
+            } catch (e) {
+                historyList.innerHTML = '<div id="history-empty">读取失败</div>';
+            }
+            historyPanel.style.display = 'block';
+        }
+
+        function loadConversation(id) {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const history = JSON.parse(data);
+                    const item = history.find(h => h.id === id);
+                    if (item) {
+                        if (currentMessages.length > 0) {
+                            saveHistoryToStorage();
+                        }
+                        currentChatId = item.id;
+                        currentMessages = item.messages || [];
+                        renderMessages();
+                        console.log(`✅ 加载对话: ${id}`);
+                        historyPanel.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.warn('加载对话失败', e);
+            }
+        }
+
+        // ============================================================
+        // 11. 事件绑定
+        // ============================================================
+        sendBtn.addEventListener('click', sendMessage);
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        });
+
+        // 新对话
+        newChatBtn.addEventListener('click', () => {
+            if (isProcessing || isSpeaking) {
+                console.log('⏳ 正在处理中，请稍后');
+                return;
+            }
+            if (currentMessages.length > 0) {
+                saveHistoryToStorage();
+            }
+            startNewChat();
+        });
+
+        // 历史
+        historyBtn.addEventListener('click', showHistory);
+        closeHistoryBtn.addEventListener('click', () => {
+            historyPanel.style.display = 'none';
+        });
+
+        // 点击外部关闭历史面板
+        document.addEventListener('click', (e) => {
+            if (historyPanel.style.display === 'block' &&
+                !historyPanel.contains(e.target) &&
+                e.target !== historyBtn) {
+                historyPanel.style.display = 'none';
+            }
+        });
+
+        // 自动保存历史（关闭页面或跳转时）
+        window.addEventListener('beforeunload', () => {
+            if (currentMessages.length > 0) {
+                saveHistoryToStorage();
+            }
+        });
+
+        // ============================================================
+        // 12. 初始化
+        // ============================================================
+        // 加载历史
+        loadHistoryFromStorage();
+
+        // 隐藏启动画面
+        setTimeout(() => {
+            splash.classList.add('hide');
+        }, 500);
+
+        // 友好提示：移动端可能无法自动播放音频，点击页面任意位置以启用音频上下文
+        document.addEventListener('touchstart', () => {
+            // 创建一个无声的 AudioContext 以解锁音频
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+        }, { once: true });
+
+        console.log('🌫️ 雾子手机版已启动！');
+    </script>
+</body>
+
+</html>
