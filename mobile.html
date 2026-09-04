@@ -601,6 +601,7 @@
                     };
                     audio.onended = () => cleanup();
                     audio.onerror = (e) => cleanup(new Error('播放错误'));
+                    await new AudioContext().resume(); // 唤醒音频上下文
                     audio.play().catch(e => cleanup(e));
                 });
                 console.log('✅ 音频播放结束');
