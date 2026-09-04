@@ -549,7 +549,8 @@
             try {
                 const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
                 const originalUrl = `https://${ALIYUN_WORKSPACE_ID}.${ALIYUN_REGION}.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer`;
-                const url = proxyUrl + originalUrl;
+                // const url = proxyUrl + originalUrl;
+                const url = 'https://kirikopetbrowser.vercel.app/api/proxy';
                 // const url = `https://${ALIYUN_WORKSPACE_ID}.${ALIYUN_REGION}.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer`;
                 console.log('🔊 请求阿里云 TTS (清洗后):', cleaned.substring(0, 30) + '...');
                 const response = await fetch(url, {
